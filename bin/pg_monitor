@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift File.expand_path "../../lib", __FILE__
+require "newrelic_postgres_plugin"
+require 'optparse'
+
+options = OptionParser.new do |opts|
+  opts.banner = <<-EOF
+Usage:
+  newrelic_postgres_plugin ( run | install ) [options]
+EOF
+
+  opts.on("-v", "--verbose", "Run verbosely") do
+    NewRelic::Plugin::Config.config.newrelic['verbose'] = 1
+  end
+
+  opts.on("-l", "--license LICENSE_KEY", "Your NewRelic account License Key") do | license_key |
+    $license_key = license_key
+  end
+
+  opts.on("-c", "--config FILE", "Override the location of the newrelic_plugin.yml") do | filename |
+    if !File.exists? filename
+      puts "File not found: #{filename.inspect}"
+      exit 1
+    end
+    NewRelic::Plugin::Config.config_file = filename
+  end
+
+  opts.on("-h", "--help") do
+    puts opts
+    if File.basename($0) == File.basename(__FILE__)
+      exit 0
+    end
+  end
+
+end
+
+args = options.parse!(ARGV)
+
+if args.first == "run"
+  if $license_key
+    NewRelic::Plugin::Config.config.options['newrelic']['license_key'] = $license_key
+  end
+  NewRelic::PostgresPlugin.run
+elsif args.first == "install"
+  config_file = File.read(File.expand_path("../../config/newrelic_plugin.yml", __FILE__))
+  if $license_key
+    config_file.gsub!("YOUR_LICENSE_KEY_HERE", $license_key)
+  end
+  require 'fileutils'
+  FileUtils.mkdir_p "config"
+  File.open("config/newrelic_plugin.yml", "w") do | io |
+    io.write(config_file)
+  end
+  puts "Saved agent config file #{File.expand_path("config/newrelic_plugin.yml")}"
+else
+  puts options
+end

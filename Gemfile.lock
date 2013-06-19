@@ -1,0 +1,24 @@
+GIT
+  remote: git@github.com:newrelic-platform/newrelic_plugin.git
+  revision: 913177005ae53883c73395833f3be0e9c6644eae
+  branch: release
+  specs:
+    newrelic_plugin (1.0.1)
+      faraday (>= 0.8.1)
+      json
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    faraday (0.8.7)
+      multipart-post (~> 1.1)
+    json (1.8.0)
+    multipart-post (1.2.0)
+    pg (0.15.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  newrelic_plugin!
+  pg
