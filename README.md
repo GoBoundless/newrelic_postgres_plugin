@@ -29,24 +29,24 @@ This plugin has been tested with with a few different Postgres version and shoul
 
 1. Install this gem from RubyGems:
 
-      gem install newrelic_postgres_plugin
+      ```gem install newrelic_postgres_plugin```
 
 2. Create an installation directory (like /opt/newrelic/postgres ).
 3. In the installation directory, execute
 
-      pg_monitor install -l LICENSE_KEY
+      ```pg_monitor install -l LICENSE_KEY```
 
    using the license key from your New Relic account.
 4. Edit the +config/newrelic_plugin.yml+ file generated in step 4.  Setup host/port/user/password/dbname for your postgres connection.
 5. Execute
 
-      pg_monitor run
+      ```pg_monitor run```
 
 ## Developer Instructions
 
 1. Fork/Clone the repository
 2. Install bundler and run:
 
-      bundle install
+      ```bundle install```
 
 3. Run <b><tt>rake -T</tt></b> to see rake options, including tests.
