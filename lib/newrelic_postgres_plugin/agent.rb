@@ -53,7 +53,7 @@ module NewRelic::PostgresPlugin
     # Returns true if we're talking to Postgres version >= 9.2
     #
     def nine_two?
-      @connection.send(:postgresql_version) >= 90200
+      @connection.server_version >= 90200
     end
 
 
@@ -120,8 +120,8 @@ module NewRelic::PostgresPlugin
         report_metric "Indexes/Disk Utilization", 'bytes',   result[0]['size_indexes'].to_f
       end
       @connection.exec(index_hit_rate_query) do |result|
-        report_metric "Indexes/Hit Rate",       '%', result[0]['ratio'].to_f
-        report_metric "Indexes/Cache Hit Rate", '%', result[1]['ratio'].to_f
+        report_metric "Indexes/Hit Rate",       '%', result[0]['ratio'].to_f * 100.0
+        report_metric "Indexes/Cache Hit Rate", '%', result[1]['ratio'].to_f * 100.0
       end
       @connection.exec(index_size_query) do |result|
         report_metric "Indexes/Size", 'bytes', result[0]['size'].to_f
@@ -130,7 +130,7 @@ module NewRelic::PostgresPlugin
 
     def backend_query
       %Q(
-        SELECT count(*) - ( SELECT count(*) FROM pg_stat_activity WHERE
+        SELECT ( SELECT count(*) FROM pg_stat_activity WHERE
           #{
             if nine_two?
               "state <> 'idle'"
@@ -141,9 +141,9 @@ module NewRelic::PostgresPlugin
         ) AS backends_active, ( SELECT count(*) FROM pg_stat_activity WHERE
           #{
             if nine_two?
-              "AND state = 'idle'"
+              "state = 'idle'"
             else
-              "AND current_query = '<IDLE>'"
+              "current_query = '<IDLE>'"
             end
           }
         ) AS backends_idle FROM pg_stat_activity;
@@ -177,11 +177,7 @@ module NewRelic::PostgresPlugin
     end
 
     def index_size_query
-      %Q(
-        SELECT pg_size_pretty(sum(relpages*8192)) AS size
-          FROM pg_class
-          WHERE reltype = 0;
-      )
+      "SELECT sum(relpages*8192) AS size FROM pg_class WHERE reltype = 0;"
     end
 
   end
