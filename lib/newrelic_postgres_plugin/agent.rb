@@ -7,51 +7,6 @@ require 'pg'
 
 module NewRelic::PostgresPlugin
 
-  BACKEND_QUERY = %Q(
-    SELECT count(*) - ( SELECT count(*) FROM pg_stat_activity WHERE
-      #{
-        if nine_two?
-          "state <> 'idle'"
-        else
-          "current_query <> '<IDLE>'"
-        end
-      }
-    ) AS backends_active, ( SELECT count(*) FROM pg_stat_activity WHERE
-      #{
-        if nine_two?
-          "AND state = 'idle'"
-        else
-          "AND current_query = '<IDLE>'"
-        end
-      }
-    ) AS backends_idle FROM pg_stat_activity;
-  )
-  DATABASE_QUERY = %Q(
-    SELECT * FROM pg_stat_database;
-  )
-  BGWRITER_QUERY = %Q(
-    SELECT * FROM pg_stat_bgwriter;
-  )
-  INDEX_COUNT_QUERY = %Q(
-    SELECT count(1) as indexes FROM pg_class WHERE relkind = 'i';
-  )
-  INDEX_HIT_RATE_QUERY = %Q(
-    SELECT
-      'index hit rate' AS name,
-      (sum(idx_blks_hit)) / sum(idx_blks_hit + idx_blks_read) AS ratio
-    FROM pg_statio_user_indexes
-    UNION ALL
-    SELECT
-     'cache hit rate' AS name,
-      sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) AS ratio
-    FROM pg_statio_user_tables;
-  )
-  INDEX_SIZE_QUERY = %Q(
-    SELECT pg_size_pretty(sum(relpages*8192)) AS size
-      FROM pg_class
-      WHERE reltype = 0;
-  )
-
   # Register and run the agent
   def self.run
     # Register this agent.
@@ -63,6 +18,7 @@ module NewRelic::PostgresPlugin
 
 
   class Agent < NewRelic::Plugin::Agent::Base
+
     agent_guid    'com.boundless.postgres'
     agent_version '1.0.0'
     agent_config_options :host, :port, :user, :password, :dbname, :sslmode
@@ -126,14 +82,14 @@ module NewRelic::PostgresPlugin
 
 
     def report_backend_metrics
-      @connection.exec(BACKEND_QUERY) do |result|
+      @connection.exec(backend_query) do |result|
         report_metric "Backends/Active", 'queries', result[0]['backends_active']
         report_metric "Backends/Idle", 'queries', result[0]['backends_idle']
       end
     end
 
     def report_database_metrics
-      @connection.exec(DATABASE_QUERY) do |result|
+      @connection.exec(database_query) do |result|
         result.each do |row|
           database_name = row['datname']
           report_metric         "Database/#{database_name}/Backends",                        '', row['numbackends'].to_i
@@ -152,24 +108,79 @@ module NewRelic::PostgresPlugin
     end
 
     def report_bgwriter_metrics
-      @connection.exec(BGWRITER_QUERY) do |result|
+      @connection.exec(bgwriter_query) do |result|
         report_derived_metric "Background Writer/Checkpoints/Scheduled", 'checkpoints', result[0]['checkpoints_timed'].to_i
         report_derived_metric "Background Writer/Checkpoints/Requested", 'checkpoints', result[0]['checkpoints_requests'].to_i
       end
     end
 
     def report_index_metrics
-      @connection.exec(INDEX_COUNT_QUERY) do |result|
+      @connection.exec(index_count_query) do |result|
         report_metric "Indexes/Total",            'indexes', result[0]['indexes'].to_i
         report_metric "Indexes/Disk Utilization", 'bytes',   result[0]['size_indexes'].to_f
       end
-      @connection.exec(INDEX_HIT_RATE_QUERY) do |result|
+      @connection.exec(index_hit_rate_query) do |result|
         report_metric "Indexes/Hit Rate",       '%', result[0]['ratio'].to_f
         report_metric "Indexes/Cache Hit Rate", '%', result[1]['ratio'].to_f
       end
-      @connection.exec(INDEX_SIZE_QUERY) do |result|
+      @connection.exec(index_size_query) do |result|
         report_metric "Indexes/Size", 'bytes', result[0]['size'].to_f
       end
+    end
+
+    def backend_query
+      %Q(
+        SELECT count(*) - ( SELECT count(*) FROM pg_stat_activity WHERE
+          #{
+            if nine_two?
+              "state <> 'idle'"
+            else
+              "current_query <> '<IDLE>'"
+            end
+          }
+        ) AS backends_active, ( SELECT count(*) FROM pg_stat_activity WHERE
+          #{
+            if nine_two?
+              "AND state = 'idle'"
+            else
+              "AND current_query = '<IDLE>'"
+            end
+          }
+        ) AS backends_idle FROM pg_stat_activity;
+      )
+    end
+
+    def database_query
+      "SELECT * FROM pg_stat_database;"
+    end
+
+    def bgwriter_query
+      "SELECT * FROM pg_stat_bgwriter;"
+    end
+
+    def index_count_query
+      "SELECT count(1) as indexes FROM pg_class WHERE relkind = 'i';"
+
+    def index_hit_rate_query
+      %Q(
+        SELECT
+          'index hit rate' AS name,
+          (sum(idx_blks_hit)) / sum(idx_blks_hit + idx_blks_read) AS ratio
+        FROM pg_statio_user_indexes
+        UNION ALL
+        SELECT
+         'cache hit rate' AS name,
+          sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) AS ratio
+        FROM pg_statio_user_tables;
+      )
+    end
+
+    def index_size_query
+      %Q(
+        SELECT pg_size_pretty(sum(relpages*8192)) AS size
+          FROM pg_class
+          WHERE reltype = 0;
+      )
     end
 
   end
