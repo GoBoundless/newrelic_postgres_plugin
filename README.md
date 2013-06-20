@@ -42,6 +42,12 @@ This plugin has been tested with with a few different Postgres version and shoul
 
       ```pg_monitor run```
 
+## Heroku Instructions
+
+Unlike the default NewRelic Postgres plugin, this plugin is designed to be fully compatible with monitoring Heroku Postgres. In fact, we've even created a simple app you can run on Heroku to monitor your existing apps.
+
+Instructions for using Heroku as your proxy host can be found in the [heroku_postgres_monitor](https://github.com/GoBoundless/heroku_postgres_monitor) repo.
+
 ## Developer Instructions
 
 1. Fork/Clone the repository
