@@ -83,8 +83,8 @@ module NewRelic::PostgresPlugin
 
     def report_backend_metrics
       @connection.exec(backend_query) do |result|
-        report_metric "Backends/Active", 'queries', result[0]['backends_active']
-        report_metric "Backends/Idle", 'queries', result[0]['backends_idle']
+        report_metric "Backends/Active", 'connections', result[0]['backends_active']
+        report_metric "Backends/Idle",   'connections', result[0]['backends_idle']
       end
     end
 
