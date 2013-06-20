@@ -7,22 +7,35 @@ require 'pg'
 
 module NewRelic::PostgresPlugin
 
-  BACKEND_QUERY = <<-eos
+  BACKEND_QUERY = %Q(
     SELECT count(*) - ( SELECT count(*) FROM pg_stat_activity WHERE
-    current_query = '<IDLE>' ) AS backends_active, ( SELECT count(*) FROM
-    pg_stat_activity WHERE current_query = '<IDLE>' ) AS backends_idle
-    FROM pg_stat_activity;
-  eos
-  DATABASE_QUERY = <<-eos
+      #{
+        if nine_two?
+          "state <> 'idle'"
+        else
+          "current_query <> '<IDLE>'"
+        end
+      }
+    ) AS backends_active, ( SELECT count(*) FROM pg_stat_activity WHERE
+      #{
+        if nine_two?
+          "AND state = 'idle'"
+        else
+          "AND current_query = '<IDLE>'"
+        end
+      }
+    ) AS backends_idle FROM pg_stat_activity;
+  )
+  DATABASE_QUERY = %Q(
     SELECT * FROM pg_stat_database;
-  eos
-  BGWRITER_QUERY = <<-eos
+  )
+  BGWRITER_QUERY = %Q(
     SELECT * FROM pg_stat_bgwriter;
-  eos
-  INDEX_COUNT_QUERY = <<-eos
+  )
+  INDEX_COUNT_QUERY = %Q(
     SELECT count(1) as indexes FROM pg_class WHERE relkind = 'i';
-  eos
-  INDEX_HIT_RATE_QUERY = <<-eos
+  )
+  INDEX_HIT_RATE_QUERY = %Q(
     SELECT
       'index hit rate' AS name,
       (sum(idx_blks_hit)) / sum(idx_blks_hit + idx_blks_read) AS ratio
@@ -32,12 +45,12 @@ module NewRelic::PostgresPlugin
      'cache hit rate' AS name,
       sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) AS ratio
     FROM pg_statio_user_tables;
-  eos
-  INDEX_SIZE_QUERY = <<-eos
+  )
+  INDEX_SIZE_QUERY = %Q(
     SELECT pg_size_pretty(sum(relpages*8192)) AS size
       FROM pg_class
       WHERE reltype = 0;
-  eos
+  )
 
   # Register and run the agent
   def self.run
@@ -80,18 +93,24 @@ module NewRelic::PostgresPlugin
       PG::Connection.new(host: host, port: port, user: user, password: password, sslmode: sslmode, dbname: dbname)
     end
 
+    #
+    # Returns true if we're talking to Postgres version >= 9.2
+    #
+    def nine_two?
+      @connection.send(:postgresql_version) >= 90200
+    end
+
 
     #
     # This is called on every polling cycle
     #
     def poll_cycle
-      connection = self.connect
+      @connection = self.connect
 
-      report_backend_metrics  connection
-      report_bgwriter_metrics connection
-      report_database_metrics connection
-      report_index_metrics    connection
-
+      report_backend_metrics
+      report_bgwriter_metrics
+      report_database_metrics
+      report_index_metrics
     rescue => e
       $stderr.puts "#{e}: #{e.backtrace.join("\n  ")}"
     end
@@ -106,18 +125,18 @@ module NewRelic::PostgresPlugin
     end
 
 
-    def report_backend_metrics(connection)
-      connection.exec(BACKEND_QUERY) do |result|
+    def report_backend_metrics
+      @connection.exec(BACKEND_QUERY) do |result|
         report_metric "Backends/Active", 'queries', result[0]['backends_active']
         report_metric "Backends/Idle", 'queries', result[0]['backends_idle']
       end
     end
 
-    def report_database_metrics(connection)
-      connection.exec(DATABASE_QUERY) do |result|
+    def report_database_metrics
+      @connection.exec(DATABASE_QUERY) do |result|
         result.each do |row|
           database_name = row['datname']
-          report_metric        "Database/#{database_name}/Backends",                        '', row['numbackends'].to_i
+          report_metric         "Database/#{database_name}/Backends",                        '', row['numbackends'].to_i
           report_derived_metric "Database/#{database_name}/Transactions/Committed",          '', row['xact_commit'].to_i
           report_derived_metric "Database/#{database_name}/Transactions/Rolled Back",        '', row['xact_rollback'].to_i
           report_derived_metric "Database/#{database_name}/Tuples/Read from Disk",           '', row['blks_read'].to_i
@@ -132,23 +151,23 @@ module NewRelic::PostgresPlugin
       end
     end
 
-    def report_bgwriter_metrics(connection)
-      connection.exec(BGWRITER_QUERY) do |result|
+    def report_bgwriter_metrics
+      @connection.exec(BGWRITER_QUERY) do |result|
         report_derived_metric "Background Writer/Checkpoints/Scheduled", 'checkpoints', result[0]['checkpoints_timed'].to_i
         report_derived_metric "Background Writer/Checkpoints/Requested", 'checkpoints', result[0]['checkpoints_requests'].to_i
       end
     end
 
-    def report_index_metrics(connection)
-      connection.exec(INDEX_COUNT_QUERY) do |result|
-        report_metric "Indexes/Total", 'indexes', result[0]['indexes'].to_i
-        report_metric "Indexes/Disk Utilization", 'bytes', result[0]['size_indexes'].to_f
+    def report_index_metrics
+      @connection.exec(INDEX_COUNT_QUERY) do |result|
+        report_metric "Indexes/Total",            'indexes', result[0]['indexes'].to_i
+        report_metric "Indexes/Disk Utilization", 'bytes',   result[0]['size_indexes'].to_f
       end
-      connection.exec(INDEX_HIT_RATE_QUERY) do |result|
-        report_metric "Indexes/Hit Rate", '%', result[0]['index hit rate'].to_f
-        report_metric "Indexes/Cache Hit Rate", '%', result[0]['cache hit rate'].to_f
+      @connection.exec(INDEX_HIT_RATE_QUERY) do |result|
+        report_metric "Indexes/Hit Rate",       '%', result[0]['ratio'].to_f
+        report_metric "Indexes/Cache Hit Rate", '%', result[1]['ratio'].to_f
       end
-      connection.exec(INDEX_SIZE_QUERY) do |result|
+      @connection.exec(INDEX_SIZE_QUERY) do |result|
         report_metric "Indexes/Size", 'bytes', result[0]['size'].to_f
       end
     end

@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   ## If your rubyforge_project name is different, then edit it and comment out
   ## the sub! line in the Rakefile
   s.name              = 'newrelic_postgres_plugin'
-  s.version           = '1.0.0'
+  s.version           = '0.1.0'
   s.date              = '2013-06-20'
   s.rubyforge_project = 'newrelic_postgres_plugin'
 
@@ -67,6 +67,7 @@ to find out how to install and run the plugin agent.
   s.files = %w[
     Gemfile
     Gemfile.lock
+    LICENSE
     README.md
     Rakefile
     bin/pg_monitor
