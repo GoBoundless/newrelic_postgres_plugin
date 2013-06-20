@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   ## the sub! line in the Rakefile
   s.name              = 'newrelic_postgres_plugin'
   s.version           = '1.0.0'
-  s.date              = '2013-06-19'
+  s.date              = '2013-06-20'
   s.rubyforge_project = 'newrelic_postgres_plugin'
 
   ## Make sure your summary is short. The description may be as long
@@ -46,7 +46,7 @@ This is the New Relic plugin for monitoring Postgres developed by Boundless Inc.
   ## LICENSE files to the extra_rdoc_files list.
   s.rdoc_options = ["--charset=UTF-8",
                     "--main", "README.md"]
-  s.extra_rdoc_files = %w[README.md]
+  s.extra_rdoc_files = %w[README.md LICENSE]
 
   ## The newrelic_plugin needs to be installed.  Prior to public release, the
   # gem needs to be downloaded from git@github.com:newrelic-platform/newrelic_plugin.git
@@ -66,6 +66,7 @@ to find out how to install and run the plugin agent.
   # = MANIFEST =
   s.files = %w[
     Gemfile
+    Gemfile.lock
     README.md
     Rakefile
     bin/pg_monitor

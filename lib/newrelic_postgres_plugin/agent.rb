@@ -3,15 +3,14 @@
 require 'rubygems'
 require 'bundler/setup'
 require 'newrelic_plugin'
-require 'snmp'
-
+require 'pg'
 
 module NewRelic::PostgresPlugin
 
   BACKEND_QUERY = <<-eos
     SELECT count(*) - ( SELECT count(*) FROM pg_stat_activity WHERE
-    state <> 'idle' ) AS backends_active, ( SELECT count(*) FROM
-    pg_stat_activity WHERE state = 'idle' ) AS backends_idle
+    current_query = '<IDLE>' ) AS backends_active, ( SELECT count(*) FROM
+    pg_stat_activity WHERE current_query = '<IDLE>' ) AS backends_idle
     FROM pg_stat_activity;
   eos
   DATABASE_QUERY = <<-eos
@@ -54,10 +53,11 @@ module NewRelic::PostgresPlugin
     agent_guid    'com.boundless.postgres'
     agent_version '1.0.0'
     agent_config_options :host, :port, :user, :password, :dbname, :sslmode
-    agent_human_labels('Postgres') { "#{hostname}" }
+    agent_human_labels('Postgres') { "#{host}" }
 
-    def initialize
+    def initialize name, agent_info, options={}
       @previous_metrics = {}
+      super
     end
 
     #
@@ -134,22 +134,22 @@ module NewRelic::PostgresPlugin
 
     def report_bgwriter_metrics(connection)
       connection.exec(BGWRITER_QUERY) do |result|
-        report_derived_metric "Background Writer/Checkpoints/Scheduled", 'checkpoints', result[0]['checkpoints_timed']
-        report_derived_metric "Background Writer/Checkpoints/Requested", 'checkpoints', result[0]['checkpoints_requests']
+        report_derived_metric "Background Writer/Checkpoints/Scheduled", 'checkpoints', result[0]['checkpoints_timed'].to_i
+        report_derived_metric "Background Writer/Checkpoints/Requested", 'checkpoints', result[0]['checkpoints_requests'].to_i
       end
     end
 
     def report_index_metrics(connection)
       connection.exec(INDEX_COUNT_QUERY) do |result|
-        report_metric "Indexes/Total", 'indexes', result[0]['indexes']
-        report_metric "Indexes/Disk Utilization", 'bytes', result[0]['size_indexes']
+        report_metric "Indexes/Total", 'indexes', result[0]['indexes'].to_i
+        report_metric "Indexes/Disk Utilization", 'bytes', result[0]['size_indexes'].to_f
       end
       connection.exec(INDEX_HIT_RATE_QUERY) do |result|
-        report_metric "Indexes/Hit Rate", '%', result[0]['index hit rate']
-        report_metric "Indexes/Cache Hit Rate", '%', result[0]['cache hit rate']
+        report_metric "Indexes/Hit Rate", '%', result[0]['index hit rate'].to_f
+        report_metric "Indexes/Cache Hit Rate", '%', result[0]['cache hit rate'].to_f
       end
       connection.exec(INDEX_SIZE_QUERY) do |result|
-        report_metric "Indexes/Size", 'bytes', result[0]['size']
+        report_metric "Indexes/Size", 'bytes', result[0]['size'].to_f
       end
     end
 

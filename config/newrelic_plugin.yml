@@ -18,7 +18,7 @@ newrelic:
 agents:
   # this is where configuration for agents belongs
   postgres:
-    host: 'host_name'
+    host: 'host'
     port: 5432
     user: 'username'
     password: 'password'
