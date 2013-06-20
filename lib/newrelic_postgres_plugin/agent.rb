@@ -160,6 +160,7 @@ module NewRelic::PostgresPlugin
 
     def index_count_query
       "SELECT count(1) as indexes FROM pg_class WHERE relkind = 'i';"
+    end
 
     def index_hit_rate_query
       %Q(
