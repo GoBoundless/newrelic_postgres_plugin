@@ -116,15 +116,14 @@ module NewRelic::PostgresPlugin
 
     def report_index_metrics
       @connection.exec(index_count_query) do |result|
-        report_metric "Indexes/Total",            'indexes', result[0]['indexes'].to_i
-        report_metric "Indexes/Disk Utilization", 'bytes',   result[0]['size_indexes'].to_f
+        report_metric "Indexes/Number of Indexes", 'indexes', result[0]['indexes'].to_i
       end
       @connection.exec(index_hit_rate_query) do |result|
-        report_metric "Indexes/Hit Rate",       '%', result[0]['ratio'].to_f * 100.0
+        report_metric "Indexes/Index Hit Rate", '%', result[0]['ratio'].to_f * 100.0
         report_metric "Indexes/Cache Hit Rate", '%', result[1]['ratio'].to_f * 100.0
       end
       @connection.exec(index_size_query) do |result|
-        report_metric "Indexes/Size", 'bytes', result[0]['size'].to_f
+        report_metric "Indexes/Size on Disk", 'bytes', result[0]['size'].to_f
       end
     end
 
