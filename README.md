@@ -50,7 +50,7 @@ Instructions for using Heroku as your proxy host can be found in the [heroku_pos
 
 ## Support
 
-Please use Github issue for support purposes. We will do our best to get to address issues in a timely fashion.
+Please use Github issue for support. We will do our best to address issues in a timely fashion.
 
 ## Developer Instructions
 
