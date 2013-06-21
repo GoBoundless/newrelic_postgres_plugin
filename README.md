@@ -48,6 +48,10 @@ Unlike the default NewRelic Postgres plugin, this plugin is designed to be fully
 
 Instructions for using Heroku as your proxy host can be found in the [heroku_postgres_monitor](https://github.com/GoBoundless/heroku_postgres_monitor) repo.
 
+## Support
+
+Please use Github issue for support purposes. We will do our best to get to address issues in a timely fashion.
+
 ## Developer Instructions
 
 1. Fork/Clone the repository
