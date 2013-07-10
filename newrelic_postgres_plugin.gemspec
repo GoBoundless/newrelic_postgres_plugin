@@ -75,6 +75,7 @@ to find out how to install and run the plugin agent.
     lib/newrelic_postgres_plugin.rb
     lib/newrelic_postgres_plugin/agent.rb
     newrelic_postgres_plugin.gemspec
+    postgresql.png
   ]
   # = MANIFEST =
 
