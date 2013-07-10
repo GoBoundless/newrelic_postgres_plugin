@@ -93,17 +93,17 @@ module NewRelic::PostgresPlugin
         result.each do |row|
           database_name = row['datname']
           if database_name == dbname
-            report_metric         "Database/#{database_name}/Backends",                        '', row['numbackends'].to_i
-            report_derived_metric "Database/#{database_name}/Transactions/Committed",          '', row['xact_commit'].to_i
-            report_derived_metric "Database/#{database_name}/Transactions/Rolled Back",        '', row['xact_rollback'].to_i
-            report_derived_metric "Database/#{database_name}/Tuples/Read from Disk",           '', row['blks_read'].to_i
-            report_derived_metric "Database/#{database_name}/Tuples/Read Cache Hit",           '', row['blks_hit'].to_i
-            report_derived_metric "Database/#{database_name}/Tuples/Returned/From Sequential", '', row['tup_returned'].to_i
-            report_derived_metric "Database/#{database_name}/Tuples/Returned/From Bitmap",     '', row['tup_fetched'].to_i
-            report_derived_metric "Database/#{database_name}/Tuples/Writes/Inserts",           '', row['tup_inserted'].to_i
-            report_derived_metric "Database/#{database_name}/Tuples/Writes/Updates",           '', row['tup_updated'].to_i
-            report_derived_metric "Database/#{database_name}/Tuples/Writes/Deletes",           '', row['tup_deleted'].to_i
-            report_derived_metric "Database/#{database_name}/Conflicts",                       '', row['conflicts'].to_i
+            report_metric         "Database/Backends",                        '', row['numbackends'].to_i
+            report_derived_metric "Database/Transactions/Committed",          '', row['xact_commit'].to_i
+            report_derived_metric "Database/Transactions/Rolled Back",        '', row['xact_rollback'].to_i
+            report_derived_metric "Database/Tuples/Read from Disk",           '', row['blks_read'].to_i
+            report_derived_metric "Database/Tuples/Read Cache Hit",           '', row['blks_hit'].to_i
+            report_derived_metric "Database/Tuples/Returned/From Sequential", '', row['tup_returned'].to_i
+            report_derived_metric "Database/Tuples/Returned/From Bitmap",     '', row['tup_fetched'].to_i
+            report_derived_metric "Database/Tuples/Writes/Inserts",           '', row['tup_inserted'].to_i
+            report_derived_metric "Database/Tuples/Writes/Updates",           '', row['tup_updated'].to_i
+            report_derived_metric "Database/Tuples/Writes/Deletes",           '', row['tup_deleted'].to_i
+            report_derived_metric "Database/Conflicts",                       '', row['conflicts'].to_i
           end
         end
       end
