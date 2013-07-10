@@ -21,8 +21,8 @@ module NewRelic::PostgresPlugin
 
     agent_guid    'com.boundless.postgres'
     agent_version '1.0.0'
-    agent_config_options :host, :port, :user, :password, :dbname, :sslmode
-    agent_human_labels('Postgres') { "#{host}" }
+    agent_config_options :host, :port, :user, :password, :dbname, :sslmode, :label
+    agent_human_labels('Postgres') { "#{label || host}" }
 
     def initialize name, agent_info, options={}
       @previous_metrics = {}
@@ -92,17 +92,19 @@ module NewRelic::PostgresPlugin
       @connection.exec(database_query) do |result|
         result.each do |row|
           database_name = row['datname']
-          report_metric         "Database/#{database_name}/Backends",                        '', row['numbackends'].to_i
-          report_derived_metric "Database/#{database_name}/Transactions/Committed",          '', row['xact_commit'].to_i
-          report_derived_metric "Database/#{database_name}/Transactions/Rolled Back",        '', row['xact_rollback'].to_i
-          report_derived_metric "Database/#{database_name}/Tuples/Read from Disk",           '', row['blks_read'].to_i
-          report_derived_metric "Database/#{database_name}/Tuples/Read Cache Hit",           '', row['blks_hit'].to_i
-          report_derived_metric "Database/#{database_name}/Tuples/Returned/From Sequential", '', row['tup_returned'].to_i
-          report_derived_metric "Database/#{database_name}/Tuples/Returned/From Bitmap",     '', row['tup_fetched'].to_i
-          report_derived_metric "Database/#{database_name}/Tuples/Writes/Inserts",           '', row['tup_inserted'].to_i
-          report_derived_metric "Database/#{database_name}/Tuples/Writes/Updates",           '', row['tup_updated'].to_i
-          report_derived_metric "Database/#{database_name}/Tuples/Writes/Deletes",           '', row['tup_deleted'].to_i
-          report_derived_metric "Database/#{database_name}/Conflicts",                       '', row['conflicts'].to_i
+          if database_name == dbname
+            report_metric         "Database/#{database_name}/Backends",                        '', row['numbackends'].to_i
+            report_derived_metric "Database/#{database_name}/Transactions/Committed",          '', row['xact_commit'].to_i
+            report_derived_metric "Database/#{database_name}/Transactions/Rolled Back",        '', row['xact_rollback'].to_i
+            report_derived_metric "Database/#{database_name}/Tuples/Read from Disk",           '', row['blks_read'].to_i
+            report_derived_metric "Database/#{database_name}/Tuples/Read Cache Hit",           '', row['blks_hit'].to_i
+            report_derived_metric "Database/#{database_name}/Tuples/Returned/From Sequential", '', row['tup_returned'].to_i
+            report_derived_metric "Database/#{database_name}/Tuples/Returned/From Bitmap",     '', row['tup_fetched'].to_i
+            report_derived_metric "Database/#{database_name}/Tuples/Writes/Inserts",           '', row['tup_inserted'].to_i
+            report_derived_metric "Database/#{database_name}/Tuples/Writes/Updates",           '', row['tup_updated'].to_i
+            report_derived_metric "Database/#{database_name}/Tuples/Writes/Deletes",           '', row['tup_deleted'].to_i
+            report_derived_metric "Database/#{database_name}/Conflicts",                       '', row['conflicts'].to_i
+          end
         end
       end
     end

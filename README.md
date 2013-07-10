@@ -42,6 +42,8 @@ This plugin has been tested with with a few different Postgres version and shoul
 
       ```pg_monitor run```
 
+6. You should now see your results in the left-hand navigation of the NewRelic web UI under a tab labeled 'Postgres'.
+
 ## Heroku Instructions
 
 Unlike the default NewRelic Postgres plugin, this plugin is designed to be fully compatible with monitoring Heroku Postgres. In fact, we've even created a simple app you can run on Heroku to monitor your existing apps.

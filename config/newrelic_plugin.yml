@@ -24,3 +24,4 @@ agents:
     password: 'password'
     dbname: 'database_name'
     sslmode: 'require' # (disable|allow|prefer|require)
+    label: 'Production DB' # This label is optional and will default to the server hostname - it shows up in the NewRelic Web UI
