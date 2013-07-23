@@ -46,7 +46,7 @@ module NewRelic::PostgresPlugin
     # Get a connection to postgres
     #
     def connect
-      PG::Connection.new(host: host, port: port, user: user, password: password, sslmode: sslmode, dbname: dbname)
+      PG::Connection.new(:host => host, :port => port, :user => user, :password => password, :sslmode => sslmode, :dbname => dbname)
     end
 
     #
