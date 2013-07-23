@@ -67,6 +67,8 @@ module NewRelic::PostgresPlugin
       report_bgwriter_metrics
       report_database_metrics
       report_index_metrics
+      
+      @connection.finish
     rescue => e
       $stderr.puts "#{e}: #{e.backtrace.join("\n  ")}"
     end
