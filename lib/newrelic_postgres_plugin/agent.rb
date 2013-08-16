@@ -1,10 +1,3 @@
-#!/usr/bin/env ruby
-
-require 'rubygems'
-require 'bundler/setup'
-require 'newrelic_plugin'
-require 'pg'
-
 module NewRelic::PostgresPlugin
 
   # Register and run the agent
@@ -20,7 +13,7 @@ module NewRelic::PostgresPlugin
   class Agent < NewRelic::Plugin::Agent::Base
 
     agent_guid    'com.boundless.postgres'
-    agent_version '1.0.0'
+    agent_version NewRelic::PostgresPlugin::VERSION
     agent_config_options :host, :port, :user, :password, :dbname, :sslmode, :label
     agent_human_labels('Postgres') { "#{label || host}" }
 
