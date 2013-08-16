@@ -67,10 +67,11 @@ module NewRelic::PostgresPlugin
       report_bgwriter_metrics
       report_database_metrics
       report_index_metrics
-      
-      @connection.finish
+
     rescue => e
       $stderr.puts "#{e}: #{e.backtrace.join("\n  ")}"
+    ensure
+      @connection.finish if @connection
     end
 
     def report_derived_metric(name, units, value)
