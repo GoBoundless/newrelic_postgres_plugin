@@ -51,7 +51,7 @@ This is the New Relic plugin for monitoring Postgres developed by Boundless Inc.
   ## The newrelic_plugin needs to be installed.  Prior to public release, the
   # gem needs to be downloaded from git@github.com:newrelic-platform/newrelic_plugin.git
   # and built using the "rake build" command
-  s.add_dependency('newrelic_plugin', ">= 0.2.11")
+  s.add_dependency('newrelic_plugin', "~> 1.0.2")
   s.add_dependency('pg', ">= 0.15.1")
 
   s.post_install_message = <<-EOF
