@@ -1,6 +1,8 @@
 require 'rubygems'
-require 'newrelic_postgres_plugin/agent'
+require 'bundler/setup'
 
-module NewRelic::PostgresPlugin
-  VERSION = '0.1.6'
-end
+require 'newrelic_plugin'
+require 'pg'
+
+require 'newrelic_postgres_plugin/version'
+require 'newrelic_postgres_plugin/agent'
