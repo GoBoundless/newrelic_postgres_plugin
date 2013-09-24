@@ -121,7 +121,7 @@ module NewRelic::PostgresPlugin
         report_metric "Indexes/Cache Hit Rate", '%', result[1]['ratio'].to_f * 100.0
       end
       @connection.exec(index_size_query) do |result|
-        report_metric "Indexes/Size on Disk", 'bytes', result[0]['size'].to_f
+        report_metric "Indexes/Size on Disk", 'bytes', result[0]['size'].to_i
       end
     end
 
@@ -174,7 +174,7 @@ module NewRelic::PostgresPlugin
     end
 
     def index_size_query
-      "SELECT sum(relpages*8192) AS size FROM pg_class WHERE reltype = 0;"
+      "SELECT sum(relpages*8192)::bigint AS size FROM pg_class WHERE reltype = 0;"
     end
 
   end
