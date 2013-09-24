@@ -13,8 +13,8 @@ Gem::Specification.new do |s|
   ## If your rubyforge_project name is different, then edit it and comment out
   ## the sub! line in the Rakefile
   s.name              = 'newrelic_postgres_plugin'
-  s.version           = '0.1.6'
-  s.date              = '2013-07-23'
+  s.version           = '0.1.7'
+  s.date              = '2013-09-24'
   s.rubyforge_project = 'newrelic_postgres_plugin'
 
   ## Make sure your summary is short. The description may be as long
@@ -74,6 +74,7 @@ to find out how to install and run the plugin agent.
     config/newrelic_plugin.yml
     lib/newrelic_postgres_plugin.rb
     lib/newrelic_postgres_plugin/agent.rb
+    lib/newrelic_postgres_plugin/version.rb
     newrelic_postgres_plugin.gemspec
     postgresql.png
   ]
