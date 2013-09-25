@@ -174,7 +174,7 @@ module NewRelic::PostgresPlugin
     end
 
     def index_size_query
-      "SELECT sum(relpages*8192)::bigint AS size FROM pg_class WHERE reltype = 0;"
+      "SELECT sum(relpages::bigint*8192) AS size FROM pg_class WHERE reltype = 0;"
     end
 
   end
