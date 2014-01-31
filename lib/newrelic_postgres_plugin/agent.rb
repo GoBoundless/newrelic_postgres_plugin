@@ -17,7 +17,7 @@ module NewRelic::PostgresPlugin
     agent_config_options :host, :port, :user, :password, :dbname, :sslmode, :label
     agent_human_labels('Postgres') { "#{label || host}" }
 
-    def initialize name, agent_info, options={}
+    def initialize(*args)
       @previous_metrics = {}
       super
     end
@@ -165,11 +165,13 @@ module NewRelic::PostgresPlugin
           'index hit rate' AS name,
           (sum(idx_blks_hit)) / sum(idx_blks_hit + idx_blks_read) AS ratio
         FROM pg_statio_user_indexes
+        WHERE idx_blks_hit > 0
         UNION ALL
         SELECT
          'cache hit rate' AS name,
           sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) AS ratio
-        FROM pg_statio_user_tables;
+        FROM pg_statio_user_tables
+        WHERE idx_blks_hit > 0;
       )
     end
 
