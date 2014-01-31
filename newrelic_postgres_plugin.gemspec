@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   ## the sub! line in the Rakefile
   s.name              = 'newrelic_postgres_plugin'
   s.version           = '0.1.9'
-  s.date              = '2013-09-25'
+  s.date              = '2014-01-31'
   s.rubyforge_project = 'newrelic_postgres_plugin'
 
   ## Make sure your summary is short. The description may be as long
