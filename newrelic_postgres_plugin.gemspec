@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   ## If your rubyforge_project name is different, then edit it and comment out
   ## the sub! line in the Rakefile
   s.name              = 'newrelic_postgres_plugin'
-  s.version           = '0.1.8'
+  s.version           = '0.1.9'
   s.date              = '2013-09-25'
   s.rubyforge_project = 'newrelic_postgres_plugin'
 
@@ -27,7 +27,7 @@ This is the New Relic plugin for monitoring Postgres developed by Boundless Inc.
   ## List the primary authors. If there are a bunch of authors, it's probably
   ## better to set the email to an email list or something. If you don't have
   ## a custom homepage, consider using your GitHub URL or the like.
-  s.authors  = ["Matt Hodgson"]
+  s.authors  = ["Matt Hodgson", "Jacob Elder"]
   s.email    = 'matt@boundless.com'
   s.homepage = 'http://boundless.com'
 
@@ -51,7 +51,7 @@ This is the New Relic plugin for monitoring Postgres developed by Boundless Inc.
   ## The newrelic_plugin needs to be installed.  Prior to public release, the
   # gem needs to be downloaded from git@github.com:newrelic-platform/newrelic_plugin.git
   # and built using the "rake build" command
-  s.add_dependency('newrelic_plugin', "~> 1.0.2")
+  s.add_dependency('newrelic_plugin', "~> 1.3")
   s.add_dependency('pg', ">= 0.15.1")
 
   s.post_install_message = <<-EOF
