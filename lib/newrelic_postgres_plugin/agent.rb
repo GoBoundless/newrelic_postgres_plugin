@@ -101,7 +101,7 @@ module NewRelic::PostgresPlugin
         report_metric "Database/Indexes/Count", 'indexes', result[0]['indexes'].to_i
       end
       @connection.exec(index_size_query) do |result|
-        report_metric "Databases/Indexes/Size", 'bytes', result[0]['size'].to_i
+        report_metric "Database/Indexes/Size", 'bytes', result[0]['size'].to_i
       end
     end
 

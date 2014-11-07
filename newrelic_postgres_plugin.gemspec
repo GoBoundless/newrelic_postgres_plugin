@@ -13,8 +13,8 @@ Gem::Specification.new do |s|
   ## If your rubyforge_project name is different, then edit it and comment out
   ## the sub! line in the Rakefile
   s.name              = 'newrelic_postgres_plugin'
-  s.version           = '0.1.10'
-  s.date              = '2014-01-31'
+  s.version           = '0.2.0'
+  s.date              = '2014-08-05'
   s.rubyforge_project = 'newrelic_postgres_plugin'
 
   ## Make sure your summary is short. The description may be as long
