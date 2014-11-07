@@ -5,8 +5,8 @@ A NewRelic Platform Postgres Plugin
 
 The New Relic Postgres Plugin enables integrated monitoring of your Postgres database in a custom NewRelic dashboard. Currently the following metrics are recorded:
 
-* Index size, hit rate, and count
-* Cache hit rate
+* Index size, miss rate, and count
+* Cache miss rate
 * Idle and active connection counts
 * BGWriter metrics
 * Tuple metrics
@@ -19,11 +19,9 @@ The New Relic Postgres Plugin enables integrated monitoring of your Postgres dat
 You need a host to install the plugin on that is able to poll the desired Postgres database. That
 host also needs Ruby (tested with 2.0.0), and support for rubygems.
 
-
 ### Postgres
 
 This plugin has been tested with with a few different Postgres version and should work with any version compatible with the pg gem.
-
 
 ## Installation and Running
 
@@ -37,7 +35,7 @@ This plugin has been tested with with a few different Postgres version and shoul
       ```pg_monitor install -l LICENSE_KEY```
 
    using the license key from your New Relic account.
-4. Edit the +config/newrelic_plugin.yml+ file generated in step 4.  Setup host/port/user/password/dbname for your postgres connection.
+4. Edit the `config/newrelic_plugin.yml` file generated in step 4. Setup host/port/user/password/dbname for your postgres connection.
 5. Execute
 
       ```pg_monitor run```
@@ -61,4 +59,4 @@ Please use Github issue for support. We will do our best to address issues in a 
 
       ```bundle install```
 
-3. Run <b><tt>rake -T</tt></b> to see rake options, including tests.
+3. Run `rake -T` to see rake options, including tests.

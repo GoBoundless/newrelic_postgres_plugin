@@ -76,7 +76,6 @@ module NewRelic::PostgresPlugin
       @previous_metrics[name] = value
     end
 
-
     def report_backend_metrics
       @connection.exec(backend_query) do |result|
         report_metric "Backends/Active", 'connections', result[0]['backends_active']
@@ -87,21 +86,22 @@ module NewRelic::PostgresPlugin
     def report_database_metrics
       @connection.exec(database_query) do |result|
         result.each do |row|
-          database_name = row['datname']
-          if database_name == dbname
-            report_metric         "Database/Backends",                        '', row['numbackends'].to_i
-            report_derived_metric "Database/Transactions/Committed",          '', row['xact_commit'].to_i
-            report_derived_metric "Database/Transactions/Rolled Back",        '', row['xact_rollback'].to_i
-            report_derived_metric "Database/Tuples/Read from Disk",           '', row['blks_read'].to_i
-            report_derived_metric "Database/Tuples/Read Cache Hit",           '', row['blks_hit'].to_i
-            report_derived_metric "Database/Tuples/Returned/From Sequential", '', row['tup_returned'].to_i
-            report_derived_metric "Database/Tuples/Returned/From Bitmap",     '', row['tup_fetched'].to_i
-            report_derived_metric "Database/Tuples/Writes/Inserts",           '', row['tup_inserted'].to_i
-            report_derived_metric "Database/Tuples/Writes/Updates",           '', row['tup_updated'].to_i
-            report_derived_metric "Database/Tuples/Writes/Deletes",           '', row['tup_deleted'].to_i
-            report_derived_metric "Database/Conflicts",                       '', row['conflicts'].to_i
-          end
+          report_metric         "Database/Backends",                        '', row['numbackends'].to_i
+          report_derived_metric "Database/Transactions/Committed",          '', row['xact_commit'].to_i
+          report_derived_metric "Database/Transactions/Rolled Back",        '', row['xact_rollback'].to_i
+          report_derived_metric "Database/Tuples/Returned/From Sequential", '', row['tup_returned'].to_i
+          report_derived_metric "Database/Tuples/Returned/From Bitmap",     '', row['tup_fetched'].to_i
+          report_derived_metric "Database/Tuples/Writes/Inserts",           '', row['tup_inserted'].to_i
+          report_derived_metric "Database/Tuples/Writes/Updates",           '', row['tup_updated'].to_i
+          report_derived_metric "Database/Tuples/Writes/Deletes",           '', row['tup_deleted'].to_i
+          report_derived_metric "Database/Conflicts",                       '', row['conflicts'].to_i
         end
+      end
+      @connection.exec(index_count_query) do |result|
+        report_metric "Database/Indexes/Count", 'indexes', result[0]['indexes'].to_i
+      end
+      @connection.exec(index_size_query) do |result|
+        report_metric "Databases/Indexes/Size", 'bytes', result[0]['size'].to_i
       end
     end
 
@@ -113,71 +113,83 @@ module NewRelic::PostgresPlugin
     end
 
     def report_index_metrics
-      @connection.exec(index_count_query) do |result|
-        report_metric "Indexes/Number of Indexes", 'indexes', result[0]['indexes'].to_i
+      report_metric "Indexes/Miss Ratio", '%', calculate_miss_ratio(%Q{SELECT SUM(idx_blks_hit) AS hits, SUM(idx_blks_read) AS reads FROM pg_statio_user_indexes})
+    end
+
+    def report_cache_metrics
+      report_metric "Cache/Miss Ratio", '%', calculate_miss_ratio(%Q{SELECT SUM(heap_blks_hit) AS hits, SUM(heap_blks_read) AS reads FROM pg_statio_user_tables})
+    end
+
+    private 
+
+      # This assumes the query returns a single row with two columns: hits and reads.
+      def calculate_miss_ratio(query)
+        sample = @connection.exec(query)[0]
+        sample.each { |k,v| sample[k] = v.to_i }
+        @previous_result_for_query ||= {}
+        miss_ratio = if check_samples(@previous_result_for_query[query], sample)
+
+          hits = sample["hits"] - @previous_result_for_query[query]["hits"]
+          reads = sample["reads"] - @previous_result_for_query[query]["reads"]
+          
+          if (hits + reads) == 0
+            0.0
+          else
+            reads.to_f / (hits + reads) * 100.0
+          end
+        else
+          0.0
+        end
+      
+        @previous_result_for_query[query] = sample
+        return miss_ratio
       end
-      @connection.exec(index_hit_rate_query) do |result|
-        report_metric "Indexes/Index Hit Rate", '%', result[0]['ratio'].to_f * 100.0
-        report_metric "Indexes/Cache Hit Rate", '%', result[1]['ratio'].to_f * 100.0
+ 
+      # Check if we don't have a time dimension yet or metrics have decreased in value.
+      def check_samples(last, current)
+        return false if last.nil? # First sample?
+        return false unless current.find { |k,v| last[k] > v }.nil? # Values have gone down?
+        return true
       end
-      @connection.exec(index_size_query) do |result|
-        report_metric "Indexes/Size on Disk", 'bytes', result[0]['size'].to_i
+
+      def backend_query
+        %Q(
+          SELECT ( SELECT count(*) FROM pg_stat_activity WHERE
+            #{
+              if nine_two?
+                "state <> 'idle'"
+              else
+                "current_query <> '<IDLE>'"
+              end
+            }
+          ) AS backends_active, ( SELECT count(*) FROM pg_stat_activity WHERE
+            #{
+              if nine_two?
+                "state = 'idle'"
+              else
+                "current_query = '<IDLE>'"
+              end
+            }
+          ) AS backends_idle FROM pg_stat_activity;
+        )
       end
-    end
 
-    def backend_query
-      %Q(
-        SELECT ( SELECT count(*) FROM pg_stat_activity WHERE
-          #{
-            if nine_two?
-              "state <> 'idle'"
-            else
-              "current_query <> '<IDLE>'"
-            end
-          }
-        ) AS backends_active, ( SELECT count(*) FROM pg_stat_activity WHERE
-          #{
-            if nine_two?
-              "state = 'idle'"
-            else
-              "current_query = '<IDLE>'"
-            end
-          }
-        ) AS backends_idle FROM pg_stat_activity;
-      )
-    end
+      def database_query
+        "SELECT * FROM pg_stat_database WHERE datname='#{dbname}';"
+      end
 
-    def database_query
-      "SELECT * FROM pg_stat_database;"
-    end
+      def bgwriter_query
+        "SELECT * FROM pg_stat_bgwriter;"
+      end
 
-    def bgwriter_query
-      "SELECT * FROM pg_stat_bgwriter;"
-    end
+      def index_count_query
+        "SELECT count(1) as indexes FROM pg_class WHERE relkind = 'i';"
+      end
 
-    def index_count_query
-      "SELECT count(1) as indexes FROM pg_class WHERE relkind = 'i';"
-    end
-
-    def index_hit_rate_query
-      %Q(
-        SELECT
-          'index hit rate' AS name,
-          (sum(idx_blks_hit)) / sum(idx_blks_hit + idx_blks_read) AS ratio
-        FROM pg_statio_user_indexes
-        WHERE idx_blks_hit > 0
-        UNION ALL
-        SELECT
-         'cache hit rate' AS name,
-          sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) AS ratio
-        FROM pg_statio_user_tables
-        WHERE idx_blks_hit > 0;
-      )
-    end
-
-    def index_size_query
-      "SELECT sum(relpages::bigint*8192) AS size FROM pg_class WHERE reltype = 0;"
-    end
+      def index_size_query
+        "SELECT sum(relpages::bigint*8192) AS size FROM pg_class WHERE reltype = 0;"
+      end
 
   end
+
 end
