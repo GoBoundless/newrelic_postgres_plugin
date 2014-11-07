@@ -61,6 +61,7 @@ module NewRelic::PostgresPlugin
       report_database_metrics
       report_index_metrics
       report_cache_metrics
+      report_qps_metrics
 
     rescue => e
       $stderr.puts "#{e}: #{e.backtrace.join("\n  ")}"
@@ -119,6 +120,10 @@ module NewRelic::PostgresPlugin
 
     def report_cache_metrics
       report_metric "Cache/Miss Ratio", '%', calculate_miss_ratio(%Q{SELECT SUM(heap_blks_hit) AS hits, SUM(heap_blks_read) AS reads FROM pg_statio_user_tables})
+    end
+
+    def report_qps_metrics
+      report_derived_metric "Database/Queries/Count", '', @connection.exec("SELECT SUM(calls) FROM pg_stat_statements")[0]["sum"].to_i
     end
 
     private 
