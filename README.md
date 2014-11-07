@@ -17,7 +17,9 @@ The New Relic Postgres Plugin enables integrated monitoring of your Postgres dat
 ### Proxy host
 
 You need a host to install the plugin on that is able to poll the desired Postgres database. That
-host also needs Ruby (tested with 2.0.0), and support for rubygems.
+host also needs Ruby (tested with 2.0.0), and support for rubygems. Heroku is a great choice for this. A fully deployable example app is provided.
+
+https://github.com/GoBoundless/heroku_postgres_monitor
 
 ### Postgres
 
