@@ -19,6 +19,7 @@ module NewRelic::PostgresPlugin
 
     def initialize(*args)
       @previous_metrics = {}
+      @previous_result_for_query ||= {}
       super
     end
 
@@ -49,19 +50,13 @@ module NewRelic::PostgresPlugin
       @connection.server_version >= 90200
     end
 
-
     #
     # This is called on every polling cycle
     #
     def poll_cycle
       @connection = self.connect
 
-      report_backend_metrics
-      report_bgwriter_metrics
-      report_database_metrics
-      report_index_metrics
-      report_cache_metrics
-      report_qps_metrics
+      report_metrics
 
     rescue => e
       $stderr.puts "#{e}: #{e.backtrace.join("\n  ")}"
@@ -69,34 +64,22 @@ module NewRelic::PostgresPlugin
       @connection.finish if @connection
     end
 
-    def report_derived_metric(name, units, value)
-      if previous_value = @previous_metrics[name]
-        report_metric name, units, (value - previous_value)
-      else
-        report_metric name, units, 0
-      end
-      @previous_metrics[name] = value
-    end
-
-    def report_backend_metrics
+    def report_metrics
       @connection.exec(backend_query) do |result|
         report_metric "Backends/Active", 'connections', result[0]['backends_active']
         report_metric "Backends/Idle",   'connections', result[0]['backends_idle']
       end
-    end
-
-    def report_database_metrics
       @connection.exec(database_query) do |result|
         result.each do |row|
-          report_metric         "Database/Backends",                        '', row['numbackends'].to_i
-          report_derived_metric "Database/Transactions/Committed",          '', row['xact_commit'].to_i
-          report_derived_metric "Database/Transactions/Rolled Back",        '', row['xact_rollback'].to_i
-          report_derived_metric "Database/Tuples/Returned/From Sequential", '', row['tup_returned'].to_i
-          report_derived_metric "Database/Tuples/Returned/From Bitmap",     '', row['tup_fetched'].to_i
-          report_derived_metric "Database/Tuples/Writes/Inserts",           '', row['tup_inserted'].to_i
-          report_derived_metric "Database/Tuples/Writes/Updates",           '', row['tup_updated'].to_i
-          report_derived_metric "Database/Tuples/Writes/Deletes",           '', row['tup_deleted'].to_i
-          report_derived_metric "Database/Conflicts",                       '', row['conflicts'].to_i
+          report_metric         "Database/Backends",                 '', row['numbackends'].to_i
+          report_derived_metric "Database/Transactions/Committed",   'transactions', row['xact_commit'].to_i
+          report_derived_metric "Database/Transactions/Rolled Back", 'transactions', row['xact_rollback'].to_i
+
+          report_derived_metric "Database/Rows/Selected", 'rows', row['tup_returned'].to_i + row['tup_fetched'].to_i
+          report_derived_metric "Database/Rows/Inserted", 'rows', row['tup_inserted'].to_i
+          report_derived_metric "Database/Rows/Updated",  'rows', row['tup_updated'].to_i
+          report_derived_metric "Database/Rows/Deleted",  'rows', row['tup_deleted'].to_i
+
         end
       end
       @connection.exec(index_count_query) do |result|
@@ -105,34 +88,44 @@ module NewRelic::PostgresPlugin
       @connection.exec(index_size_query) do |result|
         report_metric "Database/Indexes/Size", 'bytes', result[0]['size'].to_i
       end
-    end
-
-    def report_bgwriter_metrics
       @connection.exec(bgwriter_query) do |result|
         report_derived_metric "Background Writer/Checkpoints/Scheduled", 'checkpoints', result[0]['checkpoints_timed'].to_i
         report_derived_metric "Background Writer/Checkpoints/Requested", 'checkpoints', result[0]['checkpoints_requests'].to_i
       end
+      report_metric "Alerts/Index Miss Ratio", '%', calculate_miss_ratio(%Q{SELECT SUM(idx_blks_hit) AS hits, SUM(idx_blks_read) AS reads FROM pg_statio_user_indexes})
+      report_metric "Alerts/Cache Miss Ratio", '%', calculate_miss_ratio(%Q{SELECT SUM(heap_blks_hit) AS hits, SUM(heap_blks_read) AS reads FROM pg_statio_user_tables})
+
+      # This is dependent on the pg_stat_statements being loaded, and assumes that pg_stat_statements.max has been set sufficiently high that most queries will be recorded. If your application typically generates more than 1000 distinct query plans per sampling interval, you're going to have a bad time.
+      if extension_loaded? "pg_stat_statements"
+        @connection.exec("SELECT SUM(calls) FROM pg_stat_statements") do |result|
+          report_derived_metric "Database/Statements", '', result[0]["sum"].to_i
+        end
+      else
+        puts "pg_stat_statements is not loaded; no Database/Statements metric will be reported."
+      end
     end
 
-    def report_index_metrics
-      report_metric "Indexes/Miss Ratio", '%', calculate_miss_ratio(%Q{SELECT SUM(idx_blks_hit) AS hits, SUM(idx_blks_read) AS reads FROM pg_statio_user_indexes})
-    end
+    private
 
-    def report_cache_metrics
-      report_metric "Cache/Miss Ratio", '%', calculate_miss_ratio(%Q{SELECT SUM(heap_blks_hit) AS hits, SUM(heap_blks_read) AS reads FROM pg_statio_user_tables})
-    end
+      def extension_loaded?(extname)
+        @connection.exec("SELECT count(*) FROM pg_extension WHERE extname = '#{extname}'") do |result|
+          result[0]["count"] == "1"
+        end
+      end
 
-    def report_qps_metrics
-      report_derived_metric "Database/Queries/Count", '', @connection.exec("SELECT SUM(calls) FROM pg_stat_statements")[0]["sum"].to_i
-    end
-
-    private 
+      def report_derived_metric(name, units, value)
+        if previous_value = @previous_metrics[name]
+          report_metric name, units, (value - previous_value)
+        else
+          report_metric name, units, 0
+        end
+        @previous_metrics[name] = value
+      end
 
       # This assumes the query returns a single row with two columns: hits and reads.
       def calculate_miss_ratio(query)
         sample = @connection.exec(query)[0]
-        sample.each { |k,v| sample[k] = v.to_i }
-        @previous_result_for_query ||= {}
+        sample.each { |key,value| sample[key] = value.to_i }
         miss_ratio = if check_samples(@previous_result_for_query[query], sample)
 
           hits = sample["hits"] - @previous_result_for_query[query]["hits"]

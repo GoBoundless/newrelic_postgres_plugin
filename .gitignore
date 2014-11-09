@@ -16,3 +16,6 @@ tmp
 .yardoc
 _yardoc
 doc/
+
+config/newrelic_plugin.yml
+.envrc
