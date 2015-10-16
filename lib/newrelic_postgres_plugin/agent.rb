@@ -14,7 +14,7 @@ module NewRelic::PostgresPlugin
 
     agent_guid    'com.boundless.postgres'
     agent_version NewRelic::PostgresPlugin::VERSION
-    agent_config_options :host, :port, :user, :password, :dbname, :sslmode, :label
+    agent_config_options :host, :port, :user, :password, :dbname, :sslmode, :label, :url
     agent_human_labels('Postgres') { "#{label || host}" }
 
     def initialize(*args)
@@ -36,11 +36,19 @@ module NewRelic::PostgresPlugin
       @port || 5432
     end
 
+    def sslmode
+      @sslmode || 'prefer'
+    end
+
     #
     # Get a connection to postgres
     #
     def connect
-      PG::Connection.new(:host => host, :port => port, :user => user, :password => password, :sslmode => sslmode, :dbname => dbname)
+      if url
+        PG::Connection.new(url, {:sslmode => sslmode})
+      else
+        PG::Connection.new({:host => host, :port => port, :user => user, :password => password, :sslmode => sslmode, :dbname => dbname})
+      end
     end
 
     #
@@ -130,7 +138,7 @@ module NewRelic::PostgresPlugin
 
           hits = sample["hits"] - @previous_result_for_query[query]["hits"]
           reads = sample["reads"] - @previous_result_for_query[query]["reads"]
-          
+
           if (hits + reads) == 0
             0.0
           else
@@ -139,11 +147,11 @@ module NewRelic::PostgresPlugin
         else
           0.0
         end
-      
+
         @previous_result_for_query[query] = sample
         return miss_ratio
       end
- 
+
       # Check if we don't have a time dimension yet or metrics have decreased in value.
       def check_samples(last, current)
         return false if last.nil? # First sample?
